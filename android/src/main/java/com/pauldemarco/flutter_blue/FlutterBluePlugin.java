@@ -336,7 +336,10 @@ public class FlutterBluePlugin implements MethodCallHandler, RequestPermissionsR
         }
 
         case "TODO_SETUPSERVER": {
+            BluetoothGattServer gattServer;
 
+            //BluetoothGattService service = new BluetoothGattService();
+            //gattServer.addService(service);
             break;
         }
 
