@@ -76,11 +76,28 @@ protobuf {
     }
 }
 
+//def localProperties = new Properties()
+//def localPropertiesFile = rootProject.file('local.properties')
+//if (localPropertiesFile.exists()) {
+//    localPropertiesFile.withReader('UTF-8') { reader ->
+//        localProperties.load(reader)
+//    }
+//}
+//
+//def flutterRoot = localProperties.getProperty('flutter.sdk')
+//if (flutterRoot == null) {
+//    throw new GradleException("Flutter SDK not found. Define location with flutter.sdk in the local.properties file.")
+//}
+//apply from:  "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
+//flutter {
+//    source '../..'
+//}
+
 dependencies {
     implementation 'com.google.protobuf:protobuf-lite:3.0.1'
-
     def appcompat_version = "1.1.0"
     implementation "androidx.appcompat:appcompat:$appcompat_version"
     // For loading and tinting drawables on older versions of the platform
     implementation "androidx.appcompat:appcompat-resources:$appcompat_version"
+    implementation files('libs/flutter.jar')
 }
