@@ -1,6 +1,6 @@
 ///
 //  Generated code. Do not modify.
-//  source: flutterblue.proto
+//  source: protos/flutterblue.proto
 //
 // @dart = 2.3
 // ignore_for_file: camel_case_types,non_constant_identifier_names,library_prefixes,unused_import,unused_shown_name,return_of_invalid_type
@@ -86,6 +86,14 @@ const ConnectRequest$json = const {
   '2': const [
     const {'1': 'remote_id', '3': 1, '4': 1, '5': 9, '10': 'remoteId'},
     const {'1': 'android_auto_connect', '3': 2, '4': 1, '5': 8, '10': 'androidAutoConnect'},
+  ],
+};
+
+const CreateServiceRequest$json = const {
+  '1': 'CreateServiceRequest',
+  '2': const [
+    const {'1': 'uuid', '3': 1, '4': 1, '5': 9, '10': 'uuid'},
+    const {'1': 'is_primary', '3': 2, '4': 1, '5': 8, '10': 'isPrimary'},
   ],
 };
 

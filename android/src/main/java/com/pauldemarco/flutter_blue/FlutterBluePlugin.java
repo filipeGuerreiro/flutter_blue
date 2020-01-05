@@ -52,11 +52,15 @@ import io.flutter.plugin.common.MethodChannel.Result;
 import io.flutter.plugin.common.PluginRegistry.Registrar;
 import io.flutter.plugin.common.PluginRegistry.RequestPermissionsResultListener;
 
+import static android.bluetooth.BluetoothGattService.SERVICE_TYPE_PRIMARY;
+import static android.bluetooth.BluetoothGattService.SERVICE_TYPE_SECONDARY;
+
 /** FlutterBluePlugin */
 public class FlutterBluePlugin implements MethodCallHandler, RequestPermissionsResultListener {
     private static final String TAG = "FlutterBluePlugin";
     private static final String NAMESPACE = "plugins.pauldemarco.com/flutter_blue";
     private static final int REQUEST_COARSE_LOCATION_PERMISSIONS = 1452;
+    private static final int REQUEST_BLUETOOTH_PERMISSIONS = 1453;
     static final private UUID CCCD_ID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
     private final Registrar registrar;
     private final Activity activity;
@@ -65,6 +69,7 @@ public class FlutterBluePlugin implements MethodCallHandler, RequestPermissionsR
     private final BluetoothManager mBluetoothManager;
     private BluetoothAdapter mBluetoothAdapter;
     private final Map<String, BluetoothDeviceCache> mDevices = new HashMap<>();
+    private BluetoothGattServer mServer;
     private LogLevel logLevel = LogLevel.EMERGENCY;
 
     // Pending call and result for startScan, in the case where permissions are
@@ -335,15 +340,72 @@ public class FlutterBluePlugin implements MethodCallHandler, RequestPermissionsR
             break;
         }
 
-        case "TODO_SETUPSERVER": {
-            BluetoothGattServer gattServer;
+        case "startServer": {
+            if (mServer != null) {
+                result.error("start_server_error", "active server must be stopped before being re-started.", null);
+                return;
+            }
 
-            //BluetoothGattService service = new BluetoothGattService();
-            //gattServer.addService(service);
+            if (ContextCompat.checkSelfPermission(activity,
+                    Manifest.permission.BLUETOOTH) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(activity,
+                        new String[] { Manifest.permission.BLUETOOTH },
+                        REQUEST_BLUETOOTH_PERMISSIONS);
+                pendingCall = call;
+                pendingResult = result;
+                break;
+            }
+
+            GattServerCallback serverCallback = new GattServerCallback();
+            BluetoothGattServer server = mBluetoothManager.openGattServer(activity, serverCallback);
+            serverCallback.setServer(server);
+
+            mServer = server;
             break;
         }
 
-        case "TODO_CREATESERVICE": {
+        case "stopServer": {
+            if (mServer == null) {
+                result.error("stop_server_error", "there is no active server to stop.", null);
+                return;
+            }
+            mServer.close();
+            mServer = null;
+            break;
+        }
+
+        case "createService": {
+            if (mServer == null) {
+                result.error("create_service_error", "there is no active server to start the service with.", null);
+                return;
+            }
+
+            byte[] data = call.arguments();
+            Protos.CreateServiceRequest request;
+            try {
+                request = Protos.CreateServiceRequest.newBuilder().mergeFrom(data).build();
+            } catch (InvalidProtocolBufferException e) {
+                result.error("RuntimeException", e.getMessage(), e);
+                break;
+            }
+
+            UUID id = UUID.fromString(request.getUuid());
+            int type = request.getIsPrimary() ? SERVICE_TYPE_PRIMARY : SERVICE_TYPE_SECONDARY;
+            if (mServer.getService(id) != null) {
+                result.error("create_service_error", "duplicate id, the new service needs a unique id.", null);
+                return;
+            }
+            BluetoothGattService service = new BluetoothGattService(id, type);
+            mServer.addService(service);
+            break;
+        }
+
+        case "stopService": {
+            if (mServer == null) {
+                result.error("stop_service_error", "there is no active server to stop the service with.", null);
+                return;
+            }
+            // TODO
             break;
         }
 
@@ -825,7 +887,7 @@ public class FlutterBluePlugin implements MethodCallHandler, RequestPermissionsR
             q.setRemoteId(gatt.getDevice().getAddress());
             q.setCharacteristicUuid(descriptor.getCharacteristic().getUuid().toString());
             q.setDescriptorUuid(descriptor.getUuid().toString());
-            if (descriptor.getCharacteristic().getService().getType() == BluetoothGattService.SERVICE_TYPE_PRIMARY) {
+            if (descriptor.getCharacteristic().getService().getType() == SERVICE_TYPE_PRIMARY) {
                 q.setServiceUuid(descriptor.getCharacteristic().getService().getUuid().toString());
             } else {
                 // Reverse search to find service
