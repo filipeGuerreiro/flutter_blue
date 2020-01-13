@@ -400,12 +400,53 @@ public class FlutterBluePlugin implements MethodCallHandler, RequestPermissionsR
             break;
         }
 
+        case "updateService": {
+            if (mServer == null) {
+                result.error("update_service_error", "there is no active server to update the service with.", null);
+                return;
+            }
+
+            byte[] data = call.arguments();
+            Protos.UpdateServiceRequest request;
+            try {
+                request = Protos.UpdateServiceRequest.newBuilder().mergeFrom(data).build();
+            } catch (InvalidProtocolBufferException e) {
+                result.error("RuntimeException", e.getMessage(), e);
+                break;
+            }
+
+            UUID id = UUID.fromString(request.getUuid());
+            BluetoothGattService service = mServer.getService(id);
+            if (service == null) {
+                result.error("update_service_error", "there is no service with that id running.", null);
+                return;
+            }
+            // TODO service.addService()
+
+            break;
+        }
+
         case "stopService": {
             if (mServer == null) {
                 result.error("stop_service_error", "there is no active server to stop the service with.", null);
                 return;
             }
-            // TODO
+            byte[] data = call.arguments();
+            Protos.RemoveServiceRequest request;
+            try {
+                request = Protos.RemoveServiceRequest.newBuilder().mergeFrom(data).build();
+            } catch (InvalidProtocolBufferException e) {
+                result.error("RuntimeException", e.getMessage(), e);
+                break;
+            }
+
+            UUID id = UUID.fromString(request.getUuid());
+            BluetoothGattService service = mServer.getService(id);
+            if (service == null) {
+                result.error("stop_service_error", "there is no service with that id running.", null);
+                return;
+            }
+            mServer.removeService(service);
             break;
         }
 
