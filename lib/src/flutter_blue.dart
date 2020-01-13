@@ -144,6 +144,24 @@ class FlutterBlue {
     _isScanning.add(false);
   }
 
+  /// Starts a server to allow other bluetooth devices to connect to.
+  Future startServer() async {
+    await _channel.invokeMethod('startServer');
+  }
+
+  /// Announce service to devices.
+  Future announceService(String uuid, bool isPrimary) async {
+    var req = protos.CreateServiceRequest.create()
+      ..isPrimary = isPrimary
+      ..uuid = uuid;
+    await _channel.invokeMethod('announceService', req.writeToBuffer());
+  }
+
+  /// Stops the current server process.
+  Future stopServer() async {
+    await _channel.invokeMethod('stopServer');
+  }
+
   /// The list of connected peripherals can include those that are connected
   /// by other apps and that will need to be connected locally using the
   /// device.connect() method before they can be used.

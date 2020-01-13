@@ -374,9 +374,9 @@ public class FlutterBluePlugin implements MethodCallHandler, RequestPermissionsR
             break;
         }
 
-        case "createService": {
+        case "announceService": {
             if (mServer == null) {
-                result.error("create_service_error", "there is no active server to start the service with.", null);
+                result.error("announce_service_error", "there is no active server to start the service with.", null);
                 return;
             }
 
