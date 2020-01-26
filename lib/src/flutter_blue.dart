@@ -43,6 +43,11 @@ class FlutterBlue {
 
   PublishSubject _stopScanPill = new PublishSubject();
 
+  BehaviorSubject<bool> _isServing = BehaviorSubject.seeded(false);
+  Stream<bool> get isServing => _isServing.stream;
+
+  PublishSubject<bool> _stopServingPill = new PublishSubject();
+
   /// Gets the current state of the Bluetooth module
   Stream<BluetoothState> get state async* {
     yield await _channel
@@ -146,7 +151,22 @@ class FlutterBlue {
 
   /// Starts a server to allow other bluetooth devices to connect to.
   Future startServer() async {
-    await _channel.invokeMethod('startServer');
+
+    if (_isServing.value == true) {
+      throw Exception('Another server is already running.');
+    }
+
+    _isServing.add(true);
+
+    try {
+      await _channel.invokeMethod('startServer');
+    } catch (e) {
+      print('Error starting server.');
+      _stopServingPill.add(null);
+      _isServing.add(false);
+      throw e;
+    }
+    
   }
 
   /// Announce service to devices.
@@ -160,6 +180,8 @@ class FlutterBlue {
   /// Stops the current server process.
   Future stopServer() async {
     await _channel.invokeMethod('stopServer');
+    _stopServingPill.add(null);
+    _isServing.add(false);
   }
 
   /// The list of connected peripherals can include those that are connected
