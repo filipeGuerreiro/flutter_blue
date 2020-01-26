@@ -169,19 +169,42 @@ class FlutterBlue {
     
   }
 
+  /// Stops the current server process.
+  Future stopServer() async {
+    await _channel.invokeMethod('stopServer');
+    _stopServingPill.add(null);
+    _isServing.add(false);
+  }
+
   /// Announce service to devices.
   Future announceService(String uuid, bool isPrimary) async {
+    if (_isServing.value != true) {
+      throw Exception('Server is not running.');
+    }
+
     var req = protos.CreateServiceRequest.create()
       ..isPrimary = isPrimary
       ..uuid = uuid;
     await _channel.invokeMethod('announceService', req.writeToBuffer());
   }
 
-  /// Stops the current server process.
-  Future stopServer() async {
-    await _channel.invokeMethod('stopServer');
-    _stopServingPill.add(null);
-    _isServing.add(false);
+  Future<List<BluetoothCharacteristic>> getCharacteristics(String serviceUuid) async {
+    throw Exception("not yet implemented");
+  }
+
+  Future addCharacteristic(String serviceUuid, String charUuid) async {
+    throw Exception("not yet implemented");
+  }
+
+  Future removeCharacteristic(String serviceUuid, String charUuid) async {
+    throw Exception("not yet implemented");
+  }
+
+  Future removeService(String uuid) async {
+    // var req = protos.RemoveServiceRequest.create()
+    //   ..uuid = uuid;
+    // await _channel.invokeMethod('removeService', req.writeToBuffer());
+    throw Exception("not yet implemented");
   }
 
   /// Sets the log level of the FlutterBlue instance
