@@ -184,14 +184,6 @@ class FlutterBlue {
     _isServing.add(false);
   }
 
-  /// The list of connected peripherals can include those that are connected
-  /// by other apps and that will need to be connected locally using the
-  /// device.connect() method before they can be used.
-//  Stream<List<BluetoothDevice>> connectedDevices({
-//    List<Guid> withServices = const [],
-//  }) =>
-//      throw UnimplementedError();
-
   /// Sets the log level of the FlutterBlue instance
   /// Messages equal or below the log level specified are stored/forwarded,
   /// messages above are dropped.
