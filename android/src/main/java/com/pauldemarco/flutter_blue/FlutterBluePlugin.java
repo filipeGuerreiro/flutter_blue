@@ -346,11 +346,12 @@ public class FlutterBluePlugin implements MethodCallHandler, RequestPermissionsR
                 return;
             }
 
-            if (ContextCompat.checkSelfPermission(activity,
-                    Manifest.permission.BLUETOOTH) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(activity,
-                        new String[] { Manifest.permission.BLUETOOTH },
-                        REQUEST_BLUETOOTH_PERMISSIONS);
+            if (ContextCompat.checkSelfPermission(activity, Manifest.permission.BLUETOOTH) 
+                != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(
+                    activity,
+                    new String[] { Manifest.permission.BLUETOOTH },
+                    REQUEST_BLUETOOTH_PERMISSIONS);
                 pendingCall = call;
                 pendingResult = result;
                 break;
@@ -396,20 +397,20 @@ public class FlutterBluePlugin implements MethodCallHandler, RequestPermissionsR
                 return;
             }
             BluetoothGattService service = new BluetoothGattService(id, type);
-            /* TODO need to convert between buf types and expected pojo */
-            // request.getCharacteristics().forEach(c -> service.addCharacteristic(c));
-            // request.getIncludedServices().forEach(s -> service.addIncludedService(s));
+            request.getCharacteristics().forEach(c -> service.addCharacteristic(ProtoMaker.to(c)));
+            // TODO request.getIncludedServices().forEach(s -> service.addIncludedService(s));
             mServer.addService(service);
+
+            result.success(null);
             break;
         }
 
         case "removeService": {
             if (mServer == null) {
-                result.error("stop_service_error", "there is no active server to stop the service with.", null);
+                result.error("remove_service_error", "there is no active server to stop the service with.", null);
                 return;
             }
-            byte[] data = call.arguments();
-            String request = new String(data);
+            String request = (String) call.arguments();
 
             UUID id = UUID.fromString(request);
             BluetoothGattService service = mServer.getService(id);
@@ -418,32 +419,87 @@ public class FlutterBluePlugin implements MethodCallHandler, RequestPermissionsR
                 return;
             }
             mServer.removeService(service);
+            result.success(null);
             break;
         }
 
-        case "updateService": {
+        case "announcedServices": {
+            if (mServer == null) {
+                result.error("announced_services_error", "there is no active server to get announced services with.", null);
+                return;
+            }
+            try {
+                List<BluetoothService> services = mServer.getServices();
+                Protos.AnnouncedServicesResult.Builder p = Protos.AnnouncedServicesResult.newBuilder();
+                for (BluetoothGattService s : mServer.getServices()) {
+                    p.addServices(ProtoMaker.from(s));
+                }
+                result.success(p.build().toByteArray());
+            } catch (Exception e) {
+                result.error("announced_services_error", e.getMessage(), e);
+            }
+            break;
+        }
+
+        case "readAnnouncedService": {
+            if (mServer == null) {
+                result.error("read_announced_service_error", "there is no active server to get announced services with.", null);
+                return;
+            }
+            String request = (String) call.arguments();
+
+            UUID id = UUID.fromString(request);
+            try {    
+                BluetoothService service = mServer.getService(id);
+                if (service != null) {
+                    result.success(ProtoMaker.from(s).toByteArray());
+                }
+                result.error("read_announced_service_error", "service with id: " + id " not found.");
+            } catch (Exception e) {
+                result.error("read_announced_service_error", e.getMessage(), e);
+            }
+            break;
+        }
+
+        case "updateCharacteristic": {
             if (mServer == null) {
                 result.error("update_service_error", "there is no active server to update the service with.", null);
                 return;
             }
 
             byte[] data = call.arguments();
-            Protos.UpdateServiceRequest request;
+            Protos.BluetoothCharacteristic c;
             try {
-                request = Protos.UpdateServiceRequest.newBuilder().mergeFrom(data).build();
+                c = Protos.BluetoothCharacteristic.newBuilder().mergeFrom(data).build();
             } catch (InvalidProtocolBufferException e) {
                 result.error("RuntimeException", e.getMessage(), e);
                 break;
             }
 
-            UUID id = UUID.fromString(request.getUuid());
-            BluetoothGattService service = mServer.getService(id);
+            UUID serviceId = UUID.fromString(c.getServiceUuid());
+            BluetoothGattService service = mServer.getService(serviceId);
             if (service == null) {
                 result.error("update_service_error", "there is no service with that id running.", null);
                 return;
             }
-            // TODO service.addService()
 
+            UUID chId = UUID.fromString(c.getUuid());
+            BluetoothGattCharacteristic foundCh = service.getCharacteristic(chId);
+            if (foundCh != null) {
+                if (!foundCh.setValue(c.getValue().toByteArray())) {
+                    result.error("write_characteristic_error", "could not set the local value of characteristic", null);
+                }
+            } else {
+                foundCh = ProtoMaker.to(c);
+                service.addCharacteristic(foundCh);
+            }
+
+            mBluetoothManager.getConnectedDevices(BluetoothProfile.GATT).forEach(d -> {
+                final boolean needConfirmation = false;
+                mServer.notifyCharacteristicChanged(d, foundCh, needConfirmation);
+            }
+
+            result.success(null);
             break;
         }
 

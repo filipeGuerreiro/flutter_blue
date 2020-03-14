@@ -111,6 +111,10 @@ message DiscoverServicesResult {
   repeated BluetoothService services = 2;
 }
 
+message AnnouncedServicesResult {
+  repeated BluetoothService services = 1;
+}
+
 message ReadCharacteristicRequest {
   string remote_id = 1;
   string characteristic_uuid = 2;

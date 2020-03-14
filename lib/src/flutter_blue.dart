@@ -183,7 +183,6 @@ class FlutterBlue {
       throw Exception('Server is not running.');
     }
 
-    // TODO!
     var cs = ns.characteristics.map((c) => protos.BluetoothCharacteristic.create()).toList();
     var iss = ns.includedServices.map((i) => protos.BluetoothService.create()).toList();
     var req = protos.BluetoothService.create()
@@ -197,6 +196,15 @@ class FlutterBlue {
   /// Remove a service you are announcing
   Future removeService(String uuid) async {
     await _channel.invokeMethod('removeService', uuid);
+  }
+
+  /// Retrieve a list of announced services
+  Future<List<BluetoothService>> getAnnouncedServices() async {
+    return _channel.invokeMethod('announcedServices')
+        .then((buffer) => protos.AnnouncedServicesResult.fromBuffer(buffer))
+        .then((p) => p.services)
+        .then((p) => p.map((s) => BluetoothService.fromProto(s)).toList());
+
   }
 
   Future<List<BluetoothCharacteristic>> getCharacteristics(String serviceUuid) async {
