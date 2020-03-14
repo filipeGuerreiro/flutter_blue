@@ -381,9 +381,9 @@ public class FlutterBluePlugin implements MethodCallHandler, RequestPermissionsR
             }
 
             byte[] data = call.arguments();
-            Protos.CreateServiceRequest request;
+            Protos.BluetoothService request;
             try {
-                request = Protos.CreateServiceRequest.newBuilder().mergeFrom(data).build();
+                request = Protos.BluetoothService.newBuilder().mergeFrom(data).build();
             } catch (InvalidProtocolBufferException e) {
                 result.error("RuntimeException", e.getMessage(), e);
                 break;
@@ -396,7 +396,28 @@ public class FlutterBluePlugin implements MethodCallHandler, RequestPermissionsR
                 return;
             }
             BluetoothGattService service = new BluetoothGattService(id, type);
+            /* TODO need to convert between buf types and expected pojo */
+            // request.getCharacteristics().forEach(c -> service.addCharacteristic(c));
+            // request.getIncludedServices().forEach(s -> service.addIncludedService(s));
             mServer.addService(service);
+            break;
+        }
+
+        case "removeService": {
+            if (mServer == null) {
+                result.error("stop_service_error", "there is no active server to stop the service with.", null);
+                return;
+            }
+            byte[] data = call.arguments();
+            String request = new String(data);
+
+            UUID id = UUID.fromString(request);
+            BluetoothGattService service = mServer.getService(id);
+            if (service == null) {
+                result.error("remove_service_error", "there is no service with that id running.", null);
+                return;
+            }
+            mServer.removeService(service);
             break;
         }
 
@@ -423,30 +444,6 @@ public class FlutterBluePlugin implements MethodCallHandler, RequestPermissionsR
             }
             // TODO service.addService()
 
-            break;
-        }
-
-        case "stopService": {
-            if (mServer == null) {
-                result.error("stop_service_error", "there is no active server to stop the service with.", null);
-                return;
-            }
-            byte[] data = call.arguments();
-            Protos.RemoveServiceRequest request;
-            try {
-                request = Protos.RemoveServiceRequest.newBuilder().mergeFrom(data).build();
-            } catch (InvalidProtocolBufferException e) {
-                result.error("RuntimeException", e.getMessage(), e);
-                break;
-            }
-
-            UUID id = UUID.fromString(request.getUuid());
-            BluetoothGattService service = mServer.getService(id);
-            if (service == null) {
-                result.error("stop_service_error", "there is no service with that id running.", null);
-                return;
-            }
-            mServer.removeService(service);
             break;
         }
 

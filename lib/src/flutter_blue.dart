@@ -9,6 +9,7 @@ class FlutterBlue {
   final EventChannel _stateChannel = const EventChannel('$NAMESPACE/state');
   final StreamController<MethodCall> _methodStreamController =
       new StreamController.broadcast(); // ignore: close_sinks
+
   Stream<MethodCall> get _methodStream => _methodStreamController
       .stream; // Used internally to dispatch methods from platform.
 
@@ -177,15 +178,25 @@ class FlutterBlue {
   }
 
   /// Announce service to devices.
-  Future announceService(String uuid, bool isPrimary) async {
+  Future announceService(BluetoothService ns) async {
     if (_isServing.value != true) {
       throw Exception('Server is not running.');
     }
 
-    var req = protos.CreateServiceRequest.create()
-      ..isPrimary = isPrimary
-      ..uuid = uuid;
+    // TODO!
+    var cs = ns.characteristics.map((c) => protos.BluetoothCharacteristic.create()).toList();
+    var iss = ns.includedServices.map((i) => protos.BluetoothService.create()).toList();
+    var req = protos.BluetoothService.create()
+      ..uuid = ns.uuid.toString()
+      ..isPrimary = ns.isPrimary
+      ..characteristics.addAll(cs)
+      ..includedServices.addAll(iss);
     await _channel.invokeMethod('announceService', req.writeToBuffer());
+  }
+
+  /// Remove a service you are announcing
+  Future removeService(String uuid) async {
+    await _channel.invokeMethod('removeService', uuid);
   }
 
   Future<List<BluetoothCharacteristic>> getCharacteristics(String serviceUuid) async {
@@ -197,13 +208,6 @@ class FlutterBlue {
   }
 
   Future removeCharacteristic(String serviceUuid, String charUuid) async {
-    throw Exception("not yet implemented");
-  }
-
-  Future removeService(String uuid) async {
-    // var req = protos.RemoveServiceRequest.create()
-    //   ..uuid = uuid;
-    // await _channel.invokeMethod('removeService', req.writeToBuffer());
     throw Exception("not yet implemented");
   }
 

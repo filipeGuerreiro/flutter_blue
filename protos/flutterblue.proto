@@ -54,11 +54,6 @@ message ConnectRequest {
   bool android_auto_connect = 2;
 }
 
-message CreateServiceRequest {
-  string uuid = 1;
-  bool is_primary = 2; // Indicates whether the type of service is primary or secondary.
-}
-
 message BluetoothDevice {
   enum Type {
     UNKNOWN = 0;
