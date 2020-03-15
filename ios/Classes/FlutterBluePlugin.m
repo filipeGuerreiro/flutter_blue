@@ -159,6 +159,16 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
     } @catch(FlutterError *e) {
       result(e);
     }
+  } else if([@"startServer" isEqualToString:call.method]) {
+  
+  } else if([@"stopServer" isEqualToString:call.method]) {
+
+  } else if([@"announceService" isEqualToString:call.method]) {
+
+  } else if([@"removeService" isEqualToString:call.method]) {
+
+  } else if([@"announcedServices" isEqualToString:call.method]) {
+  
   } else if([@"readCharacteristic" isEqualToString:call.method]) {
     FlutterStandardTypedData *data = [call arguments];
     ProtosReadCharacteristicRequest *request = [[ProtosReadCharacteristicRequest alloc] initWithData:[data data] error:nil];
