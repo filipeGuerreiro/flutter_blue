@@ -397,8 +397,12 @@ public class FlutterBluePlugin implements MethodCallHandler, RequestPermissionsR
                 return;
             }
             BluetoothGattService service = new BluetoothGattService(id, type);
-            request.getCharacteristics().forEach(c -> service.addCharacteristic(ProtoMaker.to(c)));
-            // TODO request.getIncludedServices().forEach(s -> service.addIncludedService(s));
+            for (Protos.BluetoothCharacteristic c : request.getCharacteristicsList()) {
+                service.addCharacteristic(ProtoMaker.to(c));
+            }
+            for (Protos.BluetoothService s: request.getIncludedServicesList()) {
+                service.addService(ProtoMaker.to(s));
+            }
             mServer.addService(service);
 
             result.success(null);
@@ -429,10 +433,9 @@ public class FlutterBluePlugin implements MethodCallHandler, RequestPermissionsR
                 return;
             }
             try {
-                List<BluetoothService> services = mServer.getServices();
                 Protos.AnnouncedServicesResult.Builder p = Protos.AnnouncedServicesResult.newBuilder();
                 for (BluetoothGattService s : mServer.getServices()) {
-                    p.addServices(ProtoMaker.from(s));
+                    p.addServices(ProtoMaker.from(mServer, s));
                 }
                 result.success(p.build().toByteArray());
             } catch (Exception e) {
@@ -446,15 +449,15 @@ public class FlutterBluePlugin implements MethodCallHandler, RequestPermissionsR
                 result.error("read_announced_service_error", "there is no active server to get announced services with.", null);
                 return;
             }
-            String request = (String) call.arguments();
 
+            String request = call.arguments();
             UUID id = UUID.fromString(request);
-            try {    
-                BluetoothService service = mServer.getService(id);
+            try {
+                BluetoothGattService service = mServer.getService(id);
                 if (service != null) {
-                    result.success(ProtoMaker.from(s).toByteArray());
+                    result.success(ProtoMaker.from(mServer, service).toByteArray());
                 }
-                result.error("read_announced_service_error", "service with id: " + id " not found.");
+                result.error("read_announced_service_error", "service with id: " + id + " not found.", null);
             } catch (Exception e) {
                 result.error("read_announced_service_error", e.getMessage(), e);
             }
@@ -494,7 +497,7 @@ public class FlutterBluePlugin implements MethodCallHandler, RequestPermissionsR
                 service.addCharacteristic(foundCh);
             }
 
-            mBluetoothManager.getConnectedDevices(BluetoothProfile.GATT).forEach(d -> {
+            for (BluetoothDevice d : mBluetoothManager.getConnectedDevices(BluetoothProfile.GATT)) {
                 final boolean needConfirmation = false;
                 mServer.notifyCharacteristicChanged(d, foundCh, needConfirmation);
             }
