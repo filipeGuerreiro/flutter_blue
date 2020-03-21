@@ -9,6 +9,7 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattDescriptor;
+import android.bluetooth.BluetoothGattServer;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothProfile;
 import android.bluetooth.le.ScanRecord;
@@ -25,6 +26,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+
+import static android.bluetooth.BluetoothGattService.*;
 
 /**
  * Created by paul on 8/31/17.
@@ -121,7 +124,7 @@ public class ProtoMaker {
         Protos.BluetoothService.Builder p = Protos.BluetoothService.newBuilder();
         p.setRemoteId(device.getAddress());
         p.setUuid(service.getUuid().toString());
-        p.setIsPrimary(service.getType() == BluetoothGattService.SERVICE_TYPE_PRIMARY);
+        p.setIsPrimary(service.getType() == SERVICE_TYPE_PRIMARY);
         for(BluetoothGattCharacteristic c : service.getCharacteristics()) {
             p.addCharacteristics(from(device, c, gatt));
         }
@@ -129,6 +132,41 @@ public class ProtoMaker {
             p.addIncludedServices(from(device, s, gatt));
         }
         return p.build();
+    }
+
+    static Protos.BluetoothService from(BluetoothGattServer server, BluetoothGattService service) {
+        Protos.BluetoothService.Builder p = Protos.BluetoothService.newBuilder();
+        p.setUuid(service.getUuid().toString());
+        p.setIsPrimary(service.getType() == SERVICE_TYPE_PRIMARY);
+        for(BluetoothGattCharacteristic c : service.getCharacteristics()) {
+            p.addCharacteristics(from(service, c));
+        }
+        for(BluetoothGattService s : service.getIncludedServices()) {
+            p.addIncludedServices(from(server, s));
+        }
+        return p.build();
+    }
+
+    static Protos.BluetoothCharacteristic from(BluetoothGattService s, BluetoothGattCharacteristic c) {
+        Protos.BluetoothCharacteristic.Builder b = Protos.BluetoothCharacteristic.newBuilder();
+        // TODO ? b.setRemoteId(s.getRemoteId());
+        b.setUuid(c.getUuid().toString());
+        b.setProperties(from(c.getProperties()));
+        if (c.getValue() != null) {
+            b.setValue(ByteString.copyFrom(c.getValue()));
+        }
+        for (BluetoothGattDescriptor d : c.getDescriptors()) {
+            b.addDescriptors(from(d));
+        }
+        if(c.getService().getType() == SERVICE_TYPE_PRIMARY) {
+            b.setServiceUuid(c.getService().getUuid().toString());
+        } else {
+            if(s.getUuid().equals(c.getService().getUuid())) {
+                b.setServiceUuid(s.getUuid().toString());
+                b.setSecondaryServiceUuid(s.getUuid().toString());
+            }
+        }
+        return b.build();
     }
 
     static Protos.BluetoothCharacteristic from(BluetoothDevice device, BluetoothGattCharacteristic characteristic, BluetoothGatt gatt) {
@@ -141,7 +179,7 @@ public class ProtoMaker {
         for(BluetoothGattDescriptor d : characteristic.getDescriptors()) {
             p.addDescriptors(from(device, d));
         }
-        if(characteristic.getService().getType() == BluetoothGattService.SERVICE_TYPE_PRIMARY) {
+        if(characteristic.getService().getType() == SERVICE_TYPE_PRIMARY) {
             p.setServiceUuid(characteristic.getService().getUuid().toString());
         } else {
             // Reverse search to find service
@@ -204,5 +242,41 @@ public class ProtoMaker {
         }
         p.setRemoteId(device.getAddress());
         return p.build();
+    }
+
+    private static Protos.BluetoothDescriptor from(BluetoothGattDescriptor d) {
+        Protos.BluetoothDescriptor.Builder p = Protos.BluetoothDescriptor.newBuilder();
+        // TODO important ? p.setRemoteId(device.getAddress());
+        p.setUuid(d.getUuid().toString());
+        p.setCharacteristicUuid(d.getCharacteristic().getUuid().toString());
+        p.setServiceUuid(d.getCharacteristic().getService().getUuid().toString());
+        if(d.getValue() != null) {
+            p.setValue(ByteString.copyFrom(d.getValue()));
+        }
+        return p.build();
+    }
+
+    public static BluetoothGattCharacteristic to(Protos.BluetoothCharacteristic c) {
+        BluetoothGattCharacteristic res = new BluetoothGattCharacteristic(
+                UUID.fromString(c.getUuid()),
+                c.getDescriptorsCount(),
+                c.getProperties().getSerializedSize()
+        );
+        res.setValue(c.getValue().toByteArray());
+        return res;
+    }
+
+    public static BluetoothGattService to(Protos.BluetoothService s) {
+        BluetoothGattService res = new BluetoothGattService(
+                UUID.fromString(s.getUuid()),
+                s.getIsPrimary() ? SERVICE_TYPE_PRIMARY : SERVICE_TYPE_SECONDARY
+        );
+        for (Protos.BluetoothService ps : s.getIncludedServicesList()) {
+            res.addService(to(ps));
+        }
+        for (Protos.BluetoothCharacteristic pc: s.getCharacteristicsList()) {
+            res.addCharacteristic(to(pc));
+        }
+        return res;
     }
 }
