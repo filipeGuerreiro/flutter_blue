@@ -1,6 +1,6 @@
 ///
 //  Generated code. Do not modify.
-//  source: protos/flutterblue.proto
+//  source: flutterblue.proto
 //
 // @dart = 2.3
 // ignore_for_file: camel_case_types,non_constant_identifier_names,library_prefixes,unused_import,unused_shown_name,return_of_invalid_type
@@ -89,14 +89,6 @@ const ConnectRequest$json = const {
   ],
 };
 
-const CreateServiceRequest$json = const {
-  '1': 'CreateServiceRequest',
-  '2': const [
-    const {'1': 'uuid', '3': 1, '4': 1, '5': 9, '10': 'uuid'},
-    const {'1': 'is_primary', '3': 2, '4': 1, '5': 8, '10': 'isPrimary'},
-  ],
-};
-
 const BluetoothDevice$json = const {
   '1': 'BluetoothDevice',
   '2': const [
@@ -173,6 +165,13 @@ const DiscoverServicesResult$json = const {
   '2': const [
     const {'1': 'remote_id', '3': 1, '4': 1, '5': 9, '10': 'remoteId'},
     const {'1': 'services', '3': 2, '4': 3, '5': 11, '6': '.BluetoothService', '10': 'services'},
+  ],
+};
+
+const AnnouncedServicesResult$json = const {
+  '1': 'AnnouncedServicesResult',
+  '2': const [
+    const {'1': 'services', '3': 1, '4': 3, '5': 11, '6': '.BluetoothService', '10': 'services'},
   ],
 };
 
